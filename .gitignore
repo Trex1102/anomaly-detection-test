@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyTorch model weights (large binary files)
+*.pth
+*.pt
+*.ckpt
+*.bin
+
+# Large datasets and images
+content/
+dataset/*/train/
+dataset/*/test*/
+dataset/*/validation/
+
+# Large files
+*.pdf
+mvtec2.pdf
+
+# Results / outputs
+metrics_results.csv
+*.log
+*.out
+runs/
+outputs/
+results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code
+.claude/
+
+# Misc
+*.tmp
+*.bak
