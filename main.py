@@ -54,8 +54,8 @@ def train(_class_, pars):
     if not os.path.exists(pars.save_folder + '/' + _class_):
         os.makedirs(pars.save_folder + '/' + _class_)
     save_model_path  = pars.save_folder + '/' + _class_ + '/' + 'wres50_'+_class_+'.pth'
-    train_data = MVTecDataset_train(root=train_path, transform=data_transform)
-    test_data = MVTecDataset_test(root=test_path, transform=data_transform, gt_transform=gt_transform)
+    train_data = MVTecDataset_train(root=train_path, transform=data_transform, image_size=pars.image_size)
+    test_data = MVTecDataset_test(root=test_path, transform=data_transform, gt_transform=gt_transform, image_size=pars.image_size)
     train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=pars.batch_size, shuffle=True, pin_memory=True)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, pin_memory=True)
 
@@ -118,6 +118,9 @@ def train(_class_, pars):
         ## gradient acc
         accumulation_steps = 2
         
+        optimizer_proj.zero_grad(set_to_none=True)
+        optimizer_distill.zero_grad(set_to_none=True)
+
         for i, (img,img_noise,_) in enumerate(train_dataloader):
             img = img.to(device)
             img_noise = img_noise.to(device)
@@ -136,13 +139,19 @@ def train(_class_, pars):
                 optimizer_proj.step()
                 optimizer_distill.step()
                 # Clear gradients
-                optimizer_proj.zero_grad()
-                optimizer_distill.zero_grad()
+                optimizer_proj.zero_grad(set_to_none=True)
+                optimizer_distill.zero_grad(set_to_none=True)
             
             total_loss_running += loss.detach().cpu().item()
             loss_proj_running += L_proj.detach().cpu().item()
             loss_distill_running += L_distill.detach().cpu().item()
-            
+
+        if len(train_dataloader) % accumulation_steps != 0:
+            optimizer_proj.step()
+            optimizer_distill.step()
+            optimizer_proj.zero_grad(set_to_none=True)
+            optimizer_distill.zero_grad(set_to_none=True)
+
 
         loss_proj.append(loss_proj_running)
         loss_distill.append(loss_distill_running)

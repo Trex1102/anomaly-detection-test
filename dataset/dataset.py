@@ -40,10 +40,11 @@ def get_data_transforms(size, isize):
 
 
 class MVTecDataset_train(torch.utils.data.Dataset):
-    def __init__(self, root, transform):
+    def __init__(self, root, transform, image_size=256):
         self.img_path = root
         self.simplexNoise = Simplex_CLASS()
         self.transform = transform
+        self.image_size = image_size
         # load dataset
         self.img_paths = self.load_dataset()  # self.labels => good : 0, anomaly : 1
 
@@ -58,18 +59,20 @@ class MVTecDataset_train(torch.utils.data.Dataset):
         img_path = self.img_paths[idx]
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img= cv2.resize(img/255., (256, 256))
+        img = cv2.resize(img/255., (self.image_size, self.image_size))
         ## Normal
         img_normal = self.transform(img)
         ## simplex_noise
-        size = 256
-        h_noise = np.random.randint(10, int(size//8))
-        w_noise = np.random.randint(10, int(size//8))
-        start_h_noise = np.random.randint(1, size - h_noise)
-        start_w_noise = np.random.randint(1, size - w_noise)
+        size = self.image_size
+        noise_low = max(1, min(10, size // 16))
+        noise_high = max(noise_low + 1, size // 8)
+        h_noise = np.random.randint(noise_low, noise_high)
+        w_noise = np.random.randint(noise_low, noise_high)
+        start_h_noise = np.random.randint(0, max(1, size - h_noise))
+        start_w_noise = np.random.randint(0, max(1, size - w_noise))
         noise_size = (h_noise, w_noise)
         simplex_noise = self.simplexNoise.rand_3d_octaves((3, *noise_size), 6, 0.6)
-        init_zero = np.zeros((256,256,3))
+        init_zero = np.zeros((size, size, 3))
         init_zero[start_h_noise: start_h_noise + h_noise, start_w_noise: start_w_noise+w_noise, :] = 0.2 * simplex_noise.transpose(1,2,0)
         img_noise = img + init_zero
         img_noise = self.transform(img_noise)
@@ -77,12 +80,13 @@ class MVTecDataset_train(torch.utils.data.Dataset):
 
 
 class MVTecDataset_test(torch.utils.data.Dataset):
-    def __init__(self, root, transform, gt_transform):
+    def __init__(self, root, transform, gt_transform, image_size=256):
         self.img_path = os.path.join(root, 'test_public')
         self.gt_path = os.path.join(root, 'test_public', 'ground_truth')
         self.simplexNoise = Simplex_CLASS()
         self.transform = transform
         self.gt_transform = gt_transform
+        self.image_size = image_size
         # load dataset
         self.img_paths, self.gt_paths, self.labels, self.types = self.load_dataset()  # self.labels => good : 0, anomaly : 1
 
@@ -123,7 +127,7 @@ class MVTecDataset_test(torch.utils.data.Dataset):
         img_path, gt, label, img_type = self.img_paths[idx], self.gt_paths[idx], self.labels[idx], self.types[idx]
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img= cv2.resize(img/255., (256, 256))
+        img = cv2.resize(img/255., (self.image_size, self.image_size))
         ## Normal
         img = self.transform(img)
         ## simplex_noise
@@ -137,6 +141,4 @@ class MVTecDataset_test(torch.utils.data.Dataset):
         assert img.shape[1:] == gt.shape[1:], "image.size != gt.size !!!"
 
         return (img, gt, label, img_type, img_path.split('/')[-1])
-
-
 

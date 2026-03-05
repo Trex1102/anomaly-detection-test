@@ -90,14 +90,14 @@ class Revisit_RDLoss(nn.Module):
         projected_normal_feature: list of the projection layer's output on normal_features, projected_normal_feature = projection(normal_feature)
         """
         current_batchsize = projected_normal_feature[0].shape[0]
-
-        target = -torch.ones(current_batchsize).to('cuda')
+        device = projected_normal_feature[0].device
+        target = -torch.ones(current_batchsize, device=device)
 
         normal_proj1 = projected_normal_feature[0]
         normal_proj2 = projected_normal_feature[1]
         normal_proj3 = projected_normal_feature[2]
         # shuffling samples order for caculating pair-wise loss_ssot in batch-mode , (for efficient computation)
-        shuffle_index = torch.randperm(current_batchsize)
+        shuffle_index = torch.randperm(current_batchsize, device=device)
         # Shuffle the feature order of samples in each block
         shuffle_1 = normal_proj1[shuffle_index]
         shuffle_2 = normal_proj2[shuffle_index]

@@ -38,7 +38,7 @@ def inference(_class_, pars):
     test_path = os.path.join(pars.data_path, _class_)
 
     checkpoint_class  = pars.checkpoint_folder + '/' + _class_ + '/' + 'wres50_'+_class_+'.pth'
-    test_data = MVTecDataset_test(root=test_path, transform=data_transform, gt_transform=gt_transform)
+    test_data = MVTecDataset_test(root=test_path, transform=data_transform, gt_transform=gt_transform, image_size=pars.image_size)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
 
     # Use pretrained wide_resnet50 for encoder

@@ -1,96 +1,135 @@
+# MVTec AD 2 (RD++): Offline Eval + Online Benchmark Submission
 
-## Revisiting Reverse Distillation for Anomaly Detection (CVPR 2023)
+This repository now supports both:
 
-Official code of CVPR 2023 paper: Revisiting Reverse Distillation for Anomaly Detection.
+1. **Offline evaluation on `test_public`** (for fast local iteration), and  
+2. **Submission file generation for `test_private` / `test_private_mixed`** (for official benchmarking on https://benchmark.mvtec.com/).
 
-[![Paper](https://img.shields.io/badge/Paper-<COLOR>.svg)](https://openaccess.thecvf.com/content/CVPR2023/papers/Tien_Revisiting_Reverse_Distillation_for_Anomaly_Detection_CVPR_2023_paper.pdf)
-[![Video presentation](https://img.shields.io/badge/Video-presentation?logo=youtube&labelColor=hsl&color=red
-)](https://www.youtube.com/watch?v=cGRgy2Z0XQo&t=37s)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tientrandinh/Revisiting-Reverse-Distillation/blob/main/main.ipynb)
+Yes, the public-split evaluation path is still kept, so you can modify the model and test locally before uploading.
 
+---
 
-<div align="center">
+## 1) Environment
 
-<br>
-  <img width="100%" alt="AFA flowchart" src="./docs/method_training.png">
-</div>
+Recommended:
 
-<!-- ## Abastract -->
-
-&nbsp;&nbsp;&nbsp;&nbsp;The paper proposes the **RD++** approach for anomaly detection by enriching feature compactness and suppressing anomalous signals through a multi-task learning design. For the feature compactness task, RD++ introduces the self-supervised optimal transport method. For the anomalous signal suppression task, RD++ simulates pseudo-abnormal samples with simplex noise and minimizes the reconstruction loss. 
-<br>&nbsp;&nbsp;&nbsp;&nbsp;RD++ achieves a **new state-of-the-art benchmark** on the challenging MVTec dataset for both anomaly detection and localization. **More importantly**, when compared to recent SOTA methods, RD++ runs **6.x times faster than PatchCore** and **2.x times faster than CFA**, while introducing a negligible latency compared to RD.
-
-<div align="center">
-
-<br>
-  <img width="100%" alt="AFA flowchart" src="./docs/inference_time.jpeg">
-</div>
-
-
-## Table of Contents
-
-- [Revisiting Reverse Distillation for Anomaly Detection (CVPR 2023)](#revisiting-reverse-distillation-for-anomaly-detection-cvpr-2023)
-- [Libraries](#libraries)
-- [Data Preparations](#data-preparations)
-- [Train](#train)
-- [Evaluation](#evaluation)
-- [Quick Experiments](#quick-experiments)
-- [Citation](#citation)
-- [Contact](#contact)
-- [Acknowledgement](#acknowledgement)
-
-## Libraries 
-```       
-- geomloss
-- numba
+```bash
+conda run -n anomaly-detection-py310 python -V
 ```
 
-or (preferably whithin a fresh env to avoid conflicts):
+Install project deps (inside your env):
+
 ```bash
 pip install -r requirements.txt
+pip install -r MVTecAD2_public_code_utils/requirements.txt
 ```
-## Data Preparations
-Download MVTEC dataset from [[Link]](https://www.mvtec.com/company/research/datasets/mvtec-ad)
 
-## Train
-To train and test the RD++ method on 15 classes of MVTEC, for example, with two classes: carpet and leather, please run:
+---
+
+## 2) Expected Dataset Layout (MVTec AD 2)
+
+Set `DATA_ROOT=/path/to/mvtec_ad_2`, where object folders exist:
+
+```text
+mvtec_ad_2/
+  can/
+    train/good/*.png
+    validation/good/*.png
+    test_public/good/*.png
+    test_public/bad/*.png
+    test_public/ground_truth/bad/*_mask.png
+    test_private/*.png
+    test_private_mixed/*.png
+  fabric/
+  fruit_jelly/
+  rice/
+  sheet_metal/
+  vial/
+  wallplugs/
+  walnuts/
+```
+
+---
+
+## 3) Offline Evaluation (Public Split)
+
+Use this when developing/debugging changes locally.
+
+### Train
+
 ```bash
-python main.py --save_folder RD++  \
-               --classes carpet leather
-
+conda run -n anomaly-detection-py310 python main.py \
+  --data_path "$DATA_ROOT" \
+  --save_folder ./RDpp_ckpt \
+  --classes can fabric fruit_jelly rice sheet_metal vial wallplugs walnuts
 ```
-## Evaluation
-If you only need to perform inference with checkpoints, please run:
+
+### Evaluate on `test_public`
+
 ```bash
-python inference.py --checkpoint_folder RD++  \
-                    --classes carpet leather
+conda run -n anomaly-detection-py310 python inference.py \
+  --data_path "$DATA_ROOT" \
+  --checkpoint_folder ./RDpp_ckpt \
+  --classes can fabric fruit_jelly rice sheet_metal vial wallplugs walnuts
 ```
-The pretrained weights can be found here  [[Google Drive]](https://drive.google.com/drive/folders/1ifrkexB0N1O87CpYPS-Wg2vgAiwXFf2Z)
 
-## Quick Experiments
+This writes local CSV metrics from public GT and is useful for offline checks only.
 
-Try the Colab here using [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tientrandinh/Revisiting-Reverse-Distillation/blob/main/main.ipynb)
+---
 
-## Citation
-Please cite our paper if you find it's helpful in your work.
+## 4) Generate Official Submission Files (Private Splits)
 
-``` bibtex
-@InProceedings{Tien_2023_CVPR,
-    author    = {Tien, Tran Dinh and Nguyen, Anh Tuan and Tran, Nguyen Hoang and Huy, Ta Duc and Duong, Soan T.M. and Nguyen, Chanh D. Tr. and Truong, Steven Q. H.},
-    title     = {Revisiting Reverse Distillation for Anomaly Detection},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    month     = {June},
-    year      = {2023},
-    pages     = {24511-24520}
-}
+Use the single script:
+
+```bash
+conda run -n anomaly-detection-py310 bash run_ad2_submission.sh "$DATA_ROOT" ./ad2_run
 ```
-## Contact
-If you have any questions, feel free to reach out to me at trandinhtienftu95@gmail.com (Tran Dinh Tien) or open an issue in this repository.
 
-## Acknowledgement
+What this does:
 
-We use [RD](https://github.com/hq-deng/RD4AD) as the baseline. Also, we use the [Simplex Noise](https://github.com/Julian-Wyatt/AnoDDPM). We are thankful to their brilliant works!
+1. Trains RD++ per object (unless `--skip_train` is used),
+2. Computes threshold from `validation` normals (`mean + 3*std`),
+3. Exports required files:
+   - `anomaly_images/.../*.tiff` (`float16`, single-channel),
+   - optional `anomaly_images_thresholded/.../*.png`,
+4. Runs official local checker:
+   `MVTecAD2_public_code_utils/check_and_prepare_data_for_upload.py`,
+5. Creates compressed archive for upload.
 
+### Useful overrides
 
+```bash
+PYTHON_BIN="conda run -n anomaly-detection-py310 python" \
+IMAGE_SIZE=256 \
+BATCH_SIZE=16 \
+NUM_WORKERS=4 \
+EPOCHS=200 \
+CLASSES="can fabric fruit_jelly rice sheet_metal vial wallplugs walnuts" \
+EXTRA_ARGS="--no_thresholded" \
+bash run_ad2_submission.sh "$DATA_ROOT" ./ad2_run
+```
 
+If you already have checkpoints:
 
+```bash
+EXTRA_ARGS="--skip_train --checkpoint_root /path/to/checkpoints" \
+conda run -n anomaly-detection-py310 bash run_ad2_submission.sh "$DATA_ROOT" ./ad2_run
+```
+
+---
+
+## 5) Upload to Official Benchmark Server
+
+After the script completes, upload the produced archive to:
+
+- https://benchmark.mvtec.com/
+
+The official `TESTpriv / TESTpriv,mix` metrics are only returned by the server.
+
+---
+
+## 6) Reproducing Paper-Style Reporting
+
+- For local development: use `test_public` via `main.py` / `inference.py`.
+- For official comparable numbers: submit private-split anomaly maps to benchmark server.
+- Exact paper values are **not guaranteed** unless training/eval protocol and hyperparameters exactly match the paper setup and random variation.
